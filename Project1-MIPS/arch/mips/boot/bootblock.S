@@ -12,10 +12,10 @@ main:
 	li   $a1, 0x200
 	li   $a2, 0x200
 	ld   $t2, read_sd_card
-    jalr $t2
+    jal  $t2
 
 	# 3) jump to kernel
-	j    0xffffffffa0800200
+	j   0xffffffffa0800200
 
 # 4) while(1) --> stop here
 stop:
