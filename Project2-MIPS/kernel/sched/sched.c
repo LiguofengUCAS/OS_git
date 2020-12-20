@@ -53,7 +53,7 @@ static void free_user_stack(uint64_t stack_addr)
 void set_pcb(pid_t pid, pcb_t *pcb, task_info_t *task_info)
 {
     pcb->pid         = pid;
-    //pcb->name        = task_info->name;  //while 逐位赋值
+    //pcb->name        = task_info->name;  //考虑怎样给字符串正确赋值？
     pcb->type        = task_info->type;
     pcb->status      = TASK_READY;
     

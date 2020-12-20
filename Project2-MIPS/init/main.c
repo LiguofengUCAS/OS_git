@@ -47,7 +47,7 @@ static void init_pcb()
 
 	queue_init(&ready_queue);
 	
-	pcb[0].pid = 0;//process_id++;
+	pcb[0].pid = 0;
 	pcb[0].status = TASK_RUNNING;
 	
     for(i=0;i < num_sched1_tasks; i++)
