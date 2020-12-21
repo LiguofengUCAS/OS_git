@@ -127,7 +127,7 @@ typedef struct task_info
 extern queue_t ready_queue ;
 
 /* block queue to wait */
-extern queue_t block_queue ;
+extern queue_t block_queue;
 
 /* current running task PCB */
 extern pcb_t *current_running;

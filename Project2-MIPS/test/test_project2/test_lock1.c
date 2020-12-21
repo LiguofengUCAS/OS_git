@@ -16,7 +16,7 @@ mutex_lock_t mutex_lock;
 
 void lock_task1(void)
 {
-        int print_location = 1;
+        int print_location = 5;
         while (1)
         {
                 int i;
@@ -39,7 +39,7 @@ void lock_task1(void)
                 vt100_move_cursor(1, print_location);
                 printk("> [TASK] Applying for a lock.\n");
 
-                //do_scheduler();
+                do_scheduler();
 
 #ifdef SPIN_LOCK
                 spin_lock_acquire(&spin_lock);
@@ -53,7 +53,7 @@ void lock_task1(void)
                 {
                         vt100_move_cursor(1, print_location);
                         printk("> [TASK] Has acquired lock and running.(%d)\n", i);
-                        //do_scheduler();
+                        do_scheduler();
                 }
 
                 vt100_move_cursor(1, print_location);
@@ -69,13 +69,13 @@ void lock_task1(void)
 #ifdef MUTEX_LOCK
                 do_mutex_lock_release(&mutex_lock);
 #endif
-                //do_scheduler();
+                do_scheduler();
         }
 }
 
 void lock_task2(void)
 {
-        int print_location = 2;
+        int print_location = 6;
         while (1)
         {
                 int i;
@@ -98,7 +98,7 @@ void lock_task2(void)
                 vt100_move_cursor(1, print_location);
                 printk("> [TASK] Applying for a lock.\n");
 
-                //do_scheduler();
+                do_scheduler();
 
 #ifdef SPIN_LOCK
                 spin_lock_acquire(&spin_lock);
@@ -112,7 +112,7 @@ void lock_task2(void)
                 {
                         vt100_move_cursor(1, print_location);
                         printk("> [TASK] Has acquired lock and running.(%d)\n", i);
-                        // do_scheduler();
+                        do_scheduler();
                 }
 
                 vt100_move_cursor(1, print_location);
@@ -128,6 +128,6 @@ void lock_task2(void)
 #ifdef MUTEX_LOCK
                 do_mutex_lock_release(&mutex_lock);
 #endif
-                //do_scheduler();
+                do_scheduler();
         }
 }

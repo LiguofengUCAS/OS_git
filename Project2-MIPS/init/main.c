@@ -43,15 +43,20 @@ static void init_memory()
 
 static void init_pcb()
 {
-    int i;
+    int i,j;
 
 	queue_init(&ready_queue);
 	
 	pcb[0].pid = 0;
 	pcb[0].status = TASK_RUNNING;
 	
-    for(i=0;i < num_sched1_tasks; i++)
-        set_pcb(process_id, &pcb[i+1], sched1_tasks[i]);
+     for(i=0;i < num_sched1_tasks; i++)
+         set_pcb(process_id++, &pcb[i+1], sched1_tasks[i]);
+    //for(i=0;i < num_lock_tasks; i++)
+     //   set_pcb(process_id++, &pcb[i+1], lock_tasks[i]);
+
+     for(j=i;j < num_sched1_tasks + num_lock_tasks; j++)
+         set_pcb(process_id++, &pcb[j+1], lock_tasks[j-3]);
 	
     current_running = &pcb[0];
 	
