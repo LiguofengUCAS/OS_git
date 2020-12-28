@@ -250,6 +250,8 @@ int do_kill(pid_t pid)
 
     queue_push(&exit_kernel_stack_queue, kernel_sp);
     queue_push(&exit_user_stack_queue, user_sp);
+    //release pcb
+    queue_push(&exit_pcb_queue, dying);
 
     return 0;
 }
@@ -282,6 +284,8 @@ void do_exit(void)
 
     queue_push(&exit_kernel_stack_queue, kernel_sp);
     queue_push(&exit_user_stack_queue, user_sp);
+    //release pcb
+    queue_push(&exit_pcb_queue, exiting);
     
     //do_cheduler
     do_scheduler();
