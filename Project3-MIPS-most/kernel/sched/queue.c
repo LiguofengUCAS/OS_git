@@ -7,6 +7,7 @@ void queue_init(queue_t *queue)
 {
     // if (queue->head = queue->tail = NULL) the queue is empty
     queue->head = queue->tail = NULL;
+    //printk("\ninit success\n");
 }
 
 int queue_is_empty(queue_t *queue)

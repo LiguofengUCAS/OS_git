@@ -230,7 +230,8 @@ int printf(const char *fmt, ...)
 
 	buff[ret] = '\0';
 	sys_write(buff);
-	// screen_reflush();
+	//screen_write(buff);
+	screen_reflush();
 	return ret;
 }
 
@@ -246,6 +247,6 @@ int kprintf(const char *fmt, ...)
 
 	buff[ret] = '\0';
 	screen_write(buff);
-	// screen_reflush();
+	screen_reflush();
 	return ret;
 }

@@ -138,4 +138,6 @@ int sys_fread(uint32_t, char *, uint32_t);
 int sys_close(uint32_t);
 int sys_cat(char *);
 
+void sys_other();
+
 #endif

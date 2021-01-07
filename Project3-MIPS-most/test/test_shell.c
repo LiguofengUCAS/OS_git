@@ -27,7 +27,7 @@
 
 #include "screen.h"
 #include "stdio.h"
-#include "syscall.h"
+//#include "syscall.h"
 #include "test.h"
 #include "sched.h"
 
@@ -93,16 +93,34 @@ int itoa(char *ch)
     return (*ch) - 48;
 }
 
+/* clear screen */
+static void vt100_clear()
+{
+    // \033[2J
+    kprintf("%c[2J", 27);
+}
+
 static char read_uart_ch(void)
 {
     char ch = 0;
-    unsigned char *read_port = (unsigned char *)(0xbfe48000 + 0x00);
-    unsigned char *stat_port = (unsigned char *)(0xbfe48000 + 0x05);
+    unsigned char *read_port = (unsigned char *)(0xffffffffbfe00000 + 0x00);
+    unsigned char *stat_port = (unsigned char *)(0xffffffffbfe00000 + 0x05);
 
-    while ((*stat_port & 0x01))
+    
+    while (*stat_port & 0x01)
     {
-        ch = *read_port;
+        ch = *read_port;    
+        //do_scheduler();
     }
+    //ch = *read_port;
+    
+    /*while(1)
+    {
+        if(*stat_port & 0x01 == 0)
+        else
+            ch = *read_port;
+    }*/
+
     return ch;
 }
 
@@ -111,34 +129,44 @@ void execute(uint32_t argc, char argv[][10])
     if(argc == 1)
     {
         if(!strcmp(argv[0], "ps"))
-            sys_process_show();
+        {
+            do_process_show();
+            kprintf("Process_show done.\n");
+        }
         else if(!strcmp(argv[0], "clear"))
-            sys_screen_clear();
+        {   
+            //vt100_clear();
+            //screen_clear(0, SCREEN_HEIGHT - 1);
+            init_screen();
+            screen_move_cursor(0, 15);
+            kprintf("-------------------- COMMAND --------------------\n");
+        }
         else
-            printf("Unknown command!\n");
+            kprintf("Unknown command!\n");
     }
     else if(argc == 2)
     {
         int pid = itoa((char *)argv[1]);
         if(!strcmp(argv[0], "exec"))
         {
-            printf("exec process[%d]\n", pid-1);
-            sys_spawn(test_tasks[pid-1]);
+            kprintf("exec process[%d].\n", pid);
+            do_spawn(test_tasks[pid-1]);
+            kprintf("Exec process[%d] done.\n", pid);
         }
         else if(!strcmp(argv[0], "kill"))
         {
-            printf("kill process pid = %d\n", pid);
-            sys_kill(pid);
-        }
-        else if(!strcmp(argv[0], "clear") && !strcmp(argv[1], "all"))
-        {
-            sys_screen_clear();//?
+            kprintf("kill process pid = %d.\n", pid);
+            do_kill(pid);
+            kprintf("kill process %d done.\n", pid);
         }
         else
-            printf("Unknown command!\n");
+            kprintf("Unknown command!\n");
     }
     else if(argc != 0)
-        printf("Unknown command!\n");
+        kprintf("Unknown command!\n");
+    
+    //kprintf("x = %d, y = %d\n", screen_cursor_x, screen_cursor_y);
+    //kprintf("the order is: %s\n", argv[0]);
 }
 
 void test_shell()
@@ -148,33 +176,41 @@ void test_shell()
     uint32_t i = 0, argc, j, k;
     char argv[3][10];
 
+    char ch;
     /* terminal */
-    sys_move_cursor(0, SCREEN_HEIGHT / 2);
-    printf("-------------------- COMMAND --------------------\n");
-    printf(">root@AOT_OS: ");
+    screen_move_cursor(0, 15);
+    kprintf("-------------------- COMMAND --------------------\n");
+    kprintf(">root@StandPowerOS: ");
+    
+    //ch = read_uart_ch();
     
     while (1)
     {
         // read command from UART port
-        char ch = read_uart_ch();
+        ch = read_uart_ch();
 
         // TODO solve command
-        if(ch == 0 || (i == 0 && (ch == 0x7f || ch == 8))) //ASCII
+        if(ch == 0 || (i == 0 && (ch == 0x7f || ch == 8))) //ASCII  空字符或退格符或DEL
+        {
+            //do_scheduler();
             continue;
-
-        printf("%c", ch);
+        }
+        kprintf("%c", ch);
 
         if(ch != '\r')
         {
             if(ch == 8 || ch == 0x7f) // backspace
+            {   
                 i--;
+            }
             else 
                 cmd[i++] = ch;
             continue;
         }
         else
         {
-            cmd[i++] = ' ', cmd[i] = '\0';
+            cmd[i++] = ' ';
+            cmd[i] = '\0';
 
             // argc: number of arguments, argv[]: arguments
             j = 0;
@@ -198,15 +234,22 @@ void test_shell()
             }
 
             execute(argc, argv);
-
+        
             i = 0;
-            printf(">root@AOT_OS: ");
+            kprintf(">root@StandPowerOS: ");
+            //kprintf("x = %d, y = %d :", screen_cursor_x, screen_cursor_y);
         }
-
+        /*
+        while(1)
+        {
+            do_scheduler();
+            ch = read_uart_ch();
+            if(!(ch == 0 || (i == 0 && (ch == 0x7f || ch == 8))))
+                break;
+        }
+        */
         do_scheduler();
+        //kprintf("x = %d, y = %d :", screen_cursor_x, screen_cursor_y);
     }
-
-    /*while(1){
-        do_scheduler();
-    }*/
+    
 }

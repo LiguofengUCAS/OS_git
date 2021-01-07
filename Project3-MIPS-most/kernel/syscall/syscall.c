@@ -19,12 +19,12 @@ void system_call_helper(uint64_t fn, uint64_t arg1, uint64_t arg2, uint64_t arg3
 
 void sys_spawn(task_info_t *info)
 {
-    invoke_syscall(SYSCALL_SPAWN, (int)info, IGNORE, IGNORE);
+    
 }
 
 void sys_exit(void)
 {
-    invoke_syscall(SYSCALL_EXIT, IGNORE, IGNORE, IGNORE);
+    
 }
 
 void sys_sleep(uint32_t time)
@@ -34,42 +34,42 @@ void sys_sleep(uint32_t time)
 
 int sys_kill(pid_t pid)
 {
-    invoke_syscall(SYSCALL_KILL, (int)pid, IGNORE, IGNORE);
+    
 }
 
 int sys_waitpid(pid_t pid)
 {
-    invoke_syscall(SYSCALL_WAITPID, (int)pid, IGNORE, IGNORE);
+    
 }
 
 void sys_write(char *buff)
 {
-    invoke_syscall(SYSCALL_WRITE, (int)buff, IGNORE, IGNORE);
+    
 }
 
 void sys_reflush()
 {
-    invoke_syscall(SYSCALL_REFLUSH, IGNORE, IGNORE, IGNORE);
+    
 }
 
 void sys_move_cursor(int x, int y)
 {
-    invoke_syscall(SYSCALL_CURSOR, x, y, IGNORE);
+    
 }
 
 void mutex_lock_init(mutex_lock_t *lock)
 {
-    invoke_syscall(SYSCALL_MUTEX_LOCK_INIT, (int)lock, IGNORE, IGNORE);
+   
 }
 
 void mutex_lock_acquire(mutex_lock_t *lock)
 {
-    invoke_syscall(SYSCALL_MUTEX_LOCK_ACQUIRE, (int)lock, IGNORE, IGNORE);
+    
 }
 
 void mutex_lock_release(mutex_lock_t *lock)
 {
-    invoke_syscall(SYSCALL_MUTEX_LOCK_RELEASE, (int)lock, IGNORE, IGNORE);
+    
 }
 
 void condition_init(condition_t *condition)
@@ -112,7 +112,7 @@ int sys_read_shell_buff(char *buff)
 
 void sys_process_show(void)
 {
-    invoke_syscall(SYSCALL_PS, IGNORE, IGNORE, IGNORE);
+    
 }
 
 void sys_screen_clear(int line1, int line2)
@@ -121,7 +121,7 @@ void sys_screen_clear(int line1, int line2)
 
 pid_t sys_getpid()
 {
-    invoke_syscall(SYSCALL_GETPID, IGNORE, IGNORE, IGNORE);
+    
 }
 
 void sys_mkfs()
@@ -184,7 +184,7 @@ void sys_init_mac()
 {
 }
 
-void sys_others()
+void sys_other()
 {
     return ;
 }

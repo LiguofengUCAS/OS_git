@@ -90,7 +90,7 @@ typedef struct pcb
     queue_t *my_queue;
 
     /* wait queue*/
-    queue_t *wait_queue;
+    queue_t wait_queue;
 
     /* What tasks are blocked by me, the tasks in this 
      * queue need to be unblocked when I do_exit(). */
@@ -136,6 +136,8 @@ typedef struct stack
 {
     uint64_t stack_top;
     uint64_t stack_base;
+    void *prev;
+    void *next;
 } stack_t;
 
 /* ready queue to run */
@@ -144,12 +146,19 @@ extern queue_t ready_queue ;
 /* block queue to wait */
 extern queue_t block_queue;
 
+extern queue_t exit_pcb_queue;
+extern queue_t exit_user_stack_queue;
+extern queue_t exit_kernel_stack_queue;
+
 /* current running task PCB */
 extern pcb_t *current_running;
 extern pid_t process_id;
 
 extern pcb_t pcb[NUM_MAX_TASK];
 extern uint32_t initial_cp0_status;
+
+extern uint64_t stack_base;
+extern uint64_t stack_top;
 
 void do_scheduler(void);
 

@@ -43,19 +43,35 @@ static void init_memory()
 
 static void init_pcb()
 {
-    /*
+    
     int i;
 
 	queue_init(&ready_queue);
 	
 	pcb[0].pid = 0;
 	pcb[0].status = TASK_RUNNING;
-	
+
+    stack_base += 0x10000;
+    //stack_top -= 0x10000;
+    pcb[0].kernel_stack_top = stack_base;
+    pcb[0].kernel_context.regs[29] = stack_base;
+    //pcb[0].user_stack_top = stack_top;
+    //pcb[0].user_context.regs[29] = stack_top;
+	/*
     for(i = 0; i < 15; i++)
         set_pcb(process_id++, &pcb[i+1], test_tasks[i]);
-    
-    current_running = &pcb[0];
     */
+    current_running = &pcb[0];
+    
+    queue_init(&ready_queue);
+    queue_init(&exit_pcb_queue);
+    queue_init(&block_queue);
+    queue_init(&exit_user_stack_queue);
+    queue_init(&exit_kernel_stack_queue);
+
+    do_spawn(&shell_task);
+
+    //do_scheduler();
 }
 
 static void init_exception_handler()
@@ -79,36 +95,7 @@ static void init_exception()
 
 static void init_syscall(void)
 {
-    int i;
-	for(i = 0; i < NUM_SYSCALLS; i++)
-		syscall[i] = (int (*)())&sys_other;
-	syscall[SYSCALL_SLEEP              ] = (int (*)()) & do_sleep;
-	syscall[SYSCALL_GETPID             ] = (int (*)()) & do_getpid;
-	//syscall[SYSCALL_BLOCK              ] = (int (*)()) & do_block;
-	//syscall[SYSCALL_UNBLOCK_ONE        ] = (int (*)()) & do_unblock_one;
-	//syscall[SYSCALL_UNBLOCK_ALL        ] = (int (*)()) & do_unblock_all;
-	syscall[SYSCALL_WRITE              ] = (int (*)()) & screen_write;
-	syscall[SYSCALL_CURSOR             ] = (int (*)()) & screen_move_cursor;
-	syscall[SYSCALL_REFLUSH            ] = (int (*)()) & screen_reflush;
-	syscall[SYSCALL_PS                 ] = (int (*)()) & do_process_show;
-	syscall[SYSCALL_SCREEN_CLEAR       ] = (int (*)()) & sys_screen_clear;
-	syscall[SYSCALL_SPAWN              ] = (int (*)()) & do_spawn;
-	syscall[SYSCALL_KILL               ] = (int (*)()) & do_kill;
-	syscall[SYSCALL_EXIT               ] = (int (*)()) & do_exit;
-	//syscall[SYSCALL_WAIT               ] = (int (*)()) & do_wait;
-	syscall[SYSCALL_MUTEX_LOCK_INIT    ] = (int (*)()) & do_mutex_lock_init;
-	syscall[SYSCALL_MUTEX_LOCK_ACQUIRE ] = (int (*)()) & do_mutex_lock_acquire;
-	syscall[SYSCALL_MUTEX_LOCK_RELEASE ] = (int (*)()) & do_mutex_lock_release;
-	//syscall[SYSCALL_CLEAR_ALL          ] = (int (*)()) & do_clear_all;
-	syscall[SYSCALL_BARRIER_INIT       ] = (int (*)()) & do_barrier_init;
-	syscall[SYSCALL_BARRIER_WAIT       ] = (int (*)()) & do_barrier_wait; 
-	syscall[SYSCALL_SEMAPHORE_INIT     ] = (int (*)()) & do_semaphore_init;
-	syscall[SYSCALL_SEMAPHORE_UP       ] = (int (*)()) & do_semaphore_up;
-	syscall[SYSCALL_SEMAPHORE_DOWN     ] = (int (*)()) & do_semaphore_down;
-	syscall[SYSCALL_CONDITION_INIT     ] = (int (*)()) & do_condition_init;
-	syscall[SYSCALL_CONDITION_WAIT     ] = (int (*)()) & do_condition_wait;
-	syscall[SYSCALL_CONDITION_SIGNAL   ] = (int (*)()) & do_condition_signal;
-	syscall[SYSCALL_CONDITION_BROADCAST] = (int (*)()) & do_condition_broadcast;
+    
 }
 
 /* [0] The beginning of everything >_< */
@@ -152,9 +139,14 @@ void __attribute__((section(".entry_function"))) _start(void)
     // enable exception and interrupt
     // ERL = 0, EXL = 0, IE = 1
 
-    while (1)
+    /*
+    while(1)
     {
         do_scheduler();
-    };
+    }
+    */
+    do_scheduler();
+
+    test_shell();
     return;
 }

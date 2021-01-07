@@ -183,7 +183,6 @@ NESTED(handle_int, 0, sp)
 END(handle_int)
 
 NESTED(handle_syscall, 0, sp)
-   
     
 END(handle_syscall)
 

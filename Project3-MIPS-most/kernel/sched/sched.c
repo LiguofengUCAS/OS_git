@@ -12,7 +12,7 @@ pcb_t *current_running;
 
 /* global process id */
 pid_t process_id = 1;
-pid_t pcb_array_p = 0;
+pid_t pcb_array_p = 1;
 
 /* kernel stack ^_^ */
 #define NUM_KERNEL_STACK 20
@@ -116,9 +116,14 @@ void scheduler(void)
             //current_running->my_queue = &ready_queue;
         }
     }
+    current_running->cursor_x = screen_cursor_x;
+    current_running->cursor_y = screen_cursor_y;
 
     current_running = next_running;
     current_running->status = TASK_RUNNING;
+
+    screen_cursor_x = current_running->cursor_x;
+    screen_cursor_y = current_running->cursor_y;
     return ;
 }
 
@@ -188,9 +193,10 @@ int do_spawn(task_info_t *task)
         new_pcb->name[i] = task->name[i];
     new_pcb->name[i] = '\0';
     
-    queue_init(new_pcb->wait_queue);
+    queue_init(&new_pcb->wait_queue);
+    
     //stack
-    if(queue_is_empty(&exit_kernel_stack_queue) || queue_is_empty(&exit_user_stack_queue))
+    if(queue_is_empty(&exit_kernel_stack_queue))
     { 
         stack_base += 0x10000;
         stack_top -= 0x10000;
@@ -204,8 +210,8 @@ int do_spawn(task_info_t *task)
     {
         stack_t *kernel_sp = queue_dequeue(&exit_kernel_stack_queue);
         stack_t *user_sp   = queue_dequeue(&exit_user_stack_queue);
-        new_pcb->kernel_stack_top = kernel_sp->stack_base;
-        new_pcb->kernel_context.regs[29] = kernel_sp->stack_base;
+        new_pcb->kernel_stack_top = kernel_sp->stack_top;
+        new_pcb->kernel_context.regs[29] = kernel_sp->stack_top;
         new_pcb->user_stack_top = user_sp->stack_base;
         new_pcb->user_context.regs[29] = user_sp->stack_base;
     }
@@ -235,21 +241,21 @@ int do_kill(pid_t pid)
         do_mutex_lock_release(dying->lock[i]);
     }
     //release wait queue
-    while(!queue_is_empty(dying->wait_queue))
+    while(!queue_is_empty(&dying->wait_queue))
     {
-        pcb_t *wait_task = queue_dequeue(dying->wait_queue);
+        pcb_t *wait_task = queue_dequeue(&dying->wait_queue);
         wait_task->status = TASK_READY;
         queue_push(&ready_queue, wait_task);
     }
     //release stack
-    stack_t *kernel_sp, *user_sp;
-    kernel_sp->stack_top = dying->kernel_stack_top;
-    kernel_sp->stack_base = kernel_sp->stack_top - 0x10000;
-    user_sp->stack_top = dying->user_stack_top;
-    user_sp->stack_base = dying->user_stack_top + 0x10000;
+    stack_t kernel_sp, user_sp;
+    kernel_sp.stack_top = dying->kernel_stack_top;
+    kernel_sp.stack_base = kernel_sp.stack_top - 0x10000;
+    //user_sp->stack_top = dying->user_stack_top;
+    //user_sp->stack_base = dying->user_stack_top + 0x10000;
 
-    queue_push(&exit_kernel_stack_queue, kernel_sp);
-    queue_push(&exit_user_stack_queue, user_sp);
+    queue_push(&exit_kernel_stack_queue, &kernel_sp);
+    //queue_push(&exit_user_stack_queue, &user_sp);
     //release pcb
     queue_push(&exit_pcb_queue, dying);
 
@@ -269,21 +275,21 @@ void do_exit(void)
         do_mutex_lock_release(exiting->lock[i]);
     }
     //release wait queue
-    while(!queue_is_empty(exiting->wait_queue))
+    while(!queue_is_empty(&exiting->wait_queue))
     {
-        pcb_t *wait_task = queue_dequeue(exiting->wait_queue);
+        pcb_t *wait_task = queue_dequeue(&exiting->wait_queue);
         wait_task->status = TASK_READY;
         queue_push(&ready_queue, wait_task);
     }
     //release stack
-    stack_t *kernel_sp, *user_sp;
-    kernel_sp->stack_top = exiting->kernel_stack_top;
-    kernel_sp->stack_base = kernel_sp->stack_top - 0x10000;
-    user_sp->stack_top = exiting->user_stack_top;
-    user_sp->stack_base = user_sp->stack_top + 0x10000;
+    stack_t kernel_sp, user_sp;
+    kernel_sp.stack_top = exiting->kernel_stack_top;
+    kernel_sp.stack_base = kernel_sp.stack_top - 0x10000;
+    //user_sp->stack_top = exiting->user_stack_top;
+    //user_sp->stack_base = user_sp->stack_top + 0x10000;
 
-    queue_push(&exit_kernel_stack_queue, kernel_sp);
-    queue_push(&exit_user_stack_queue, user_sp);
+    queue_push(&exit_kernel_stack_queue, &kernel_sp);
+    //queue_push(&exit_user_stack_queue, &user_sp);
     //release pcb
     queue_push(&exit_pcb_queue, exiting);
     
@@ -295,23 +301,35 @@ int do_waitpid(pid_t pid)
 {
     current_running->status = TASK_BLOCKED;
     //current_running->my_queue = &pcb[pid].wait_queue;
-    queue_push(pcb[pid].wait_queue, current_running);
+    queue_push(&pcb[pid].wait_queue, current_running);
     do_scheduler();
     return 0;
 }
 
-// process show
+// process
 void do_process_show()
 {
     int i = 1;
-    pcb_t *tmp = (pcb_t *)ready_queue.head;
-    printf("[PROCESS TABLE]\n");
-    printf("[0] PID : %d STATUS : RUNNING\n", current_running->pid);
+
+    pcb_t *tmp = ready_queue.head;
+    //screen_move_cursor(0, screen_cursor_y + 1);
+    kprintf("[PROCESS TABLE]\n");
+    kprintf("[0] PID : %d STATUS : RUNNING\n", current_running->pid);
+    //screen_move_cursor(0, screen_cursor_y + 2);
     while(tmp != NULL)
     {
-        printf("[%d] PID : %d STATUS : RUNNING\n", i++, tmp->pid);
+        kprintf("[%d] PID : %d STATUS : READY\n", i++, tmp->pid);
         tmp = tmp->next;
+        //screen_move_cursor(0, screen_cursor_y + 1);
     }
+    tmp = block_queue.head;
+    while(tmp != NULL)
+    {
+        kprintf("[%d] PID : %d STATUS : BLOCKED\n", i++, tmp->pid);
+        tmp = tmp->next;
+        //screen_move_cursor(0, screen_cursor_y + 1);
+    }
+    //screen_move_cursor(0, screen_cursor_y + 4);
 }
 
 pid_t do_getpid()
