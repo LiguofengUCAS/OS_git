@@ -35,7 +35,7 @@
 
 #define NUM_MAX_TASK 32
 #define CORE_NUM 2
-#define NUM_MAX_LOCK 100
+#define NUM_MAX_LOCK 10
 #define PCB_STACK_SIZE 0x10000
 
 /* used to save register infomation */
@@ -80,8 +80,8 @@ typedef struct pcb
     regs_context_t user_context;
     regs_context_t kernel_context;
 
-    uint32_t user_stack_top;
-    uint32_t kernel_stack_top; //$29
+    uint64_t user_stack_top;
+    uint64_t kernel_stack_top; //$29
 
     /* previous, next pointer */
     void *prev;

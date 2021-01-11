@@ -107,7 +107,7 @@ void scheduler(void)
         next_running->my_queue = NULL;
     }
  
-    if(current_running->status != TASK_BLOCKED)//current_running->status = TASK_RUNNING
+    if(current_running->status == TASK_RUNNING)//current_running->status = TASK_RUNNING
     {
         current_running->status = TASK_READY;
         if(current_running->pid != 0)
@@ -134,8 +134,6 @@ pcb_t *find_pcb(uint16_t pid)
     {
         if(pcb[pcb_p].pid == pid)
             return &pcb[pcb_p];
-        else
-            pcb_p++;   
     }
     return NULL;
 }
@@ -147,23 +145,30 @@ void do_sleep(uint32_t sleep_time)
 
 void do_block(queue_t *queue)
 {
+    
     // block the current_running task into the queue
     current_running->status = TASK_BLOCKED;
     queue_push(queue, (void *)current_running);
     // current_running->my_queue = queue;
     do_scheduler();
+    
 }
 
 void do_unblock_one(queue_t *queue)
 {
+    
     // unblock the head task from the queue
-    pcb_t *item = (pcb_t *)queue_dequeue(queue);
-    item->status = TASK_READY;
-    queue_push(&ready_queue, item);
+    if(!queue_is_empty(queue))
+    {
+        pcb_t *item = (pcb_t *)queue_dequeue(queue);
+        item->status = TASK_READY;
+        queue_push(&ready_queue, item);
+    }
 }
 
 void do_unblock_all(queue_t *queue)
 {
+    
     // unblock all task in the block_queue
     pcb_t *item;
     while(!queue_is_empty(queue))
@@ -172,6 +177,7 @@ void do_unblock_all(queue_t *queue)
         item->status = TASK_READY;
         queue_push(&ready_queue, item);
     }
+    
 }
 
 int do_spawn(task_info_t *task)
@@ -209,11 +215,11 @@ int do_spawn(task_info_t *task)
     else
     {
         stack_t *kernel_sp = queue_dequeue(&exit_kernel_stack_queue);
-        stack_t *user_sp   = queue_dequeue(&exit_user_stack_queue);
+        //stack_t *user_sp   = queue_dequeue(&exit_user_stack_queue);
         new_pcb->kernel_stack_top = kernel_sp->stack_top;
         new_pcb->kernel_context.regs[29] = kernel_sp->stack_top;
-        new_pcb->user_stack_top = user_sp->stack_base;
-        new_pcb->user_context.regs[29] = user_sp->stack_base;
+        //new_pcb->user_stack_top = user_sp->stack_base;
+        //p new_pcb->user_context.regs[29] = user_sp->stack_base;
     }
     
     new_pcb->kernel_context.regs[31] = task->entry_point;
@@ -241,12 +247,7 @@ int do_kill(pid_t pid)
         do_mutex_lock_release(dying->lock[i]);
     }
     //release wait queue
-    while(!queue_is_empty(&dying->wait_queue))
-    {
-        pcb_t *wait_task = queue_dequeue(&dying->wait_queue);
-        wait_task->status = TASK_READY;
-        queue_push(&ready_queue, wait_task);
-    }
+    do_unblock_all(&dying->wait_queue);
     //release stack
     stack_t kernel_sp, user_sp;
     kernel_sp.stack_top = dying->kernel_stack_top;
@@ -259,7 +260,7 @@ int do_kill(pid_t pid)
     //release pcb
     queue_push(&exit_pcb_queue, dying);
 
-    return 0;
+    do_scheduler();
 }
 
 void do_exit(void)
@@ -268,19 +269,19 @@ void do_exit(void)
     pcb_t *exiting = current_running;
 
     exiting->status = TASK_EXITED;
-    
+    //remove from the task queue
+    if(exiting->my_queue != NULL)
+    {
+        queue_remove(exiting->my_queue, exiting);
+    }
     //release lock
-    for(i = 0; i < exiting->lock_top; i++)
+    int lock_num = exiting->lock_top;
+    for(i = 0; i < lock_num; i++)
     {
         do_mutex_lock_release(exiting->lock[i]);
     }
     //release wait queue
-    while(!queue_is_empty(&exiting->wait_queue))
-    {
-        pcb_t *wait_task = queue_dequeue(&exiting->wait_queue);
-        wait_task->status = TASK_READY;
-        queue_push(&ready_queue, wait_task);
-    }
+    do_unblock_all(&exiting->wait_queue);
     //release stack
     stack_t kernel_sp, user_sp;
     kernel_sp.stack_top = exiting->kernel_stack_top;
@@ -299,40 +300,73 @@ void do_exit(void)
 
 int do_waitpid(pid_t pid)
 {
-    current_running->status = TASK_BLOCKED;
-    //current_running->my_queue = &pcb[pid].wait_queue;
-    queue_push(&pcb[pid].wait_queue, current_running);
-    do_scheduler();
-    return 0;
+    pcb_t *tmp;
+    tmp = find_pcb(pid);
+    if(tmp != NULL && tmp != current_running)
+        do_block(&tmp->wait_queue);
+    
 }
 
 // process
 void do_process_show()
 {
-    int i = 1;
-
-    pcb_t *tmp = ready_queue.head;
-    //screen_move_cursor(0, screen_cursor_y + 1);
+    int i, j;
+    pcb_t *tmp;
+    char string[20];
+    
     kprintf("[PROCESS TABLE]\n");
-    kprintf("[0] PID : %d STATUS : RUNNING\n", current_running->pid);
-    //screen_move_cursor(0, screen_cursor_y + 2);
-    while(tmp != NULL)
+
+    for (i = 0; i < 5; i++)
     {
-        kprintf("[%d] PID : %d STATUS : READY\n", i++, tmp->pid);
-        tmp = tmp->next;
-        //screen_move_cursor(0, screen_cursor_y + 1);
+        tmp = &pcb[i];
+        status_string(tmp->status, &string);
+        kprintf("PID : %d NAME: ", tmp->pid);
+        
+        for(j = 0; tmp->name[j] != '\0'; j++)
+            kprintf("%c", tmp->name[j]);
+
+        kprintf(" STATUS : ");
+        for(j = 0; string[j] != '\0'; j++)
+            kprintf("%c", string[j]);
+        kprintf("\n");
     }
-    tmp = block_queue.head;
-    while(tmp != NULL)
-    {
-        kprintf("[%d] PID : %d STATUS : BLOCKED\n", i++, tmp->pid);
-        tmp = tmp->next;
-        //screen_move_cursor(0, screen_cursor_y + 1);
-    }
-    //screen_move_cursor(0, screen_cursor_y + 4);
 }
 
 pid_t do_getpid()
 {
     return current_running->pid;
+}
+
+void status_string(int status, char string[20])
+{
+    char block[]   = "TASK_BLOCKED";
+    char running[] = "TASK_RUNNING";
+    char ready[]   = "TASK_READY"  ;
+    char exit[]    = "TASK_EXITED" ;
+
+    int j;
+    if(status == TASK_BLOCKED)
+    {
+        for(j = 0; block[j] != '\0'; j++)
+            string[j] = block[j];
+        string[j] = '\0';
+    }
+    else if(status == TASK_RUNNING)
+    {
+        for(j = 0; running[j] != '\0'; j++)
+            string[j] = running[j];
+        string[j] = '\0';
+    }
+    else if(status == TASK_READY)
+    {
+        for(j = 0; ready[j] != '\0'; j++)
+            string[j] = ready[j];
+        string[j] = '\0';
+    }
+    else if(status == TASK_EXITED)
+    {
+        for(j = 0; exit[j] != '\0'; j++)
+            string[j] = exit[j];
+        string[j] = '\0';
+    }
 }

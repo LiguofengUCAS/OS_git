@@ -43,13 +43,15 @@ static void init_memory()
 
 static void init_pcb()
 {
-    
-    int i;
-
-	queue_init(&ready_queue);
-	
 	pcb[0].pid = 0;
 	pcb[0].status = TASK_RUNNING;
+    pcb[0].name[0] = 'k';
+    pcb[0].name[1] = 'e';
+    pcb[0].name[2] = 'r';
+    pcb[0].name[3] = 'n';
+    pcb[0].name[4] = 'e';
+    pcb[0].name[5] = 'l';
+    pcb[0].name[6] = '\0';
 
     stack_base += 0x10000;
     //stack_top -= 0x10000;

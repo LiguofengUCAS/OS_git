@@ -50,7 +50,25 @@ void do_mutex_lock_release(mutex_lock_t *lock)
     }
     else
         lock->status = UNLOCKED;
+
+    current_running->lock[find_lock(lock)] = NULL;
     
     current_running->lock_top--;
     
+}
+
+int find_lock(mutex_lock_t *lock)
+{
+    int i = 0;
+    while(1)
+    {
+        if(current_running->lock[i] == lock || i > NUM_MAX_LOCK)
+        {
+            break;
+        }
+        else
+            i++;
+    }
+
+    return i;
 }

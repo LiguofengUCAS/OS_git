@@ -46,7 +46,7 @@ void ready_to_exit_task()
     // sys_spawn(&task1);
     // sys_spawn(&task2);
 
-    for (i = 0; i < 500; i++)
+    for (i = 0; i < 50000; i++)
     {
         screen_move_cursor(0, print_location);
         //uint32_t core_id = get_cpu_id();
@@ -93,12 +93,12 @@ void wait_exit_task()
     */
 
     screen_move_cursor(0, print_location);
-    kprintf("> [TASK] I want to wait task (pid=2) to exit.");
+    kprintf("> [TASK] I want to wait task (pid=3) to exit.");
 
-    do_waitpid(2); //test waitpid
+    do_waitpid(3); //test waitpid
 
     screen_move_cursor(0, print_location);
-    kprintf("> [TASK] Task (pid=2) has exited.                ");
+    kprintf("> [TASK] Task (pid=3) has exited.                ");
 
 
     do_scheduler();

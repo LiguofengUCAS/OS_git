@@ -105,22 +105,9 @@ static char read_uart_ch(void)
     char ch = 0;
     unsigned char *read_port = (unsigned char *)(0xffffffffbfe00000 + 0x00);
     unsigned char *stat_port = (unsigned char *)(0xffffffffbfe00000 + 0x05);
-
     
-    while (*stat_port & 0x01)
-    {
-        ch = *read_port;    
-        //do_scheduler();
-    }
-    //ch = *read_port;
+    ch = (*stat_port & 0x01) ? *read_port : 0 ;
     
-    /*while(1)
-    {
-        if(*stat_port & 0x01 == 0)
-        else
-            ch = *read_port;
-    }*/
-
     return ch;
 }
 
@@ -131,12 +118,10 @@ void execute(uint32_t argc, char argv[][10])
         if(!strcmp(argv[0], "ps"))
         {
             do_process_show();
-            kprintf("Process_show done.\n");
+            //kprintf("Process_show done.\n");
         }
         else if(!strcmp(argv[0], "clear"))
         {   
-            //vt100_clear();
-            //screen_clear(0, SCREEN_HEIGHT - 1);
             init_screen();
             screen_move_cursor(0, 15);
             kprintf("-------------------- COMMAND --------------------\n");
@@ -151,22 +136,19 @@ void execute(uint32_t argc, char argv[][10])
         {
             kprintf("exec process[%d].\n", pid);
             do_spawn(test_tasks[pid-1]);
-            kprintf("Exec process[%d] done.\n", pid);
+            //kprintf("exec process[%d] done.\n", pid);
         }
         else if(!strcmp(argv[0], "kill"))
         {
             kprintf("kill process pid = %d.\n", pid);
             do_kill(pid);
-            kprintf("kill process %d done.\n", pid);
+            //kprintf("kill process %d done.\n", pid);
         }
         else
             kprintf("Unknown command!\n");
     }
     else if(argc != 0)
         kprintf("Unknown command!\n");
-    
-    //kprintf("x = %d, y = %d\n", screen_cursor_x, screen_cursor_y);
-    //kprintf("the order is: %s\n", argv[0]);
 }
 
 void test_shell()
@@ -177,6 +159,8 @@ void test_shell()
     char argv[3][10];
 
     char ch;
+    int temp_x;
+    int temp_y;
     /* terminal */
     screen_move_cursor(0, 15);
     kprintf("-------------------- COMMAND --------------------\n");
@@ -187,14 +171,18 @@ void test_shell()
     while (1)
     {
         // read command from UART port
+        //kprintf("testing read_uart_ch\n");
         ch = read_uart_ch();
 
         // TODO solve command
         if(ch == 0 || (i == 0 && (ch == 0x7f || ch == 8))) //ASCII  空字符或退格符或DEL
         {
-            //do_scheduler();
+            if(i==0)
+                do_scheduler();
+                
             continue;
         }
+        //screen_move_cursor(temp_x, temp_y);
         kprintf("%c", ch);
 
         if(ch != '\r')
@@ -234,22 +222,15 @@ void test_shell()
             }
 
             execute(argc, argv);
-        
+
             i = 0;
             kprintf(">root@StandPowerOS: ");
-            //kprintf("x = %d, y = %d :", screen_cursor_x, screen_cursor_y);
         }
-        /*
-        while(1)
-        {
-            do_scheduler();
-            ch = read_uart_ch();
-            if(!(ch == 0 || (i == 0 && (ch == 0x7f || ch == 8))))
-                break;
-        }
-        */
+        
         do_scheduler();
-        //kprintf("x = %d, y = %d :", screen_cursor_x, screen_cursor_y);
     }
-    
 }
+
+/*
+**未知原因造成的光标混乱  
+*/
