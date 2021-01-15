@@ -30,6 +30,3 @@ void init_TLB(void)
 void physical_frame_initial(void)
 {
 }
-
-//你能给init_TLB的每个操作写一下注释吗，我回去弄清楚做了一件什么事情
-//变量代表什么？
